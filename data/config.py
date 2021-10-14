@@ -856,8 +856,8 @@ yolact_EfficientNet_config = yolact_base_config.copy({
 
 # ----------------------- Default Config ----------------------- #
 # Default config
-cfg = yolact_base_config.copy()
-#cfg = yolact_EfficientNet_config.copy()
+#cfg = yolact_base_config.copy()
+cfg = yolact_EfficientNet_config.copy()
 
 def set_cfg(config_name:str):
     """ Sets the active config. Works even if cfg is already imported! """

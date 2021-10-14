@@ -536,16 +536,16 @@ class EfficientNetBackbone(nn.Module):
         self.channels = []
         
         # Method(1) --- use self.layers for yolact compatibility reasons
-        self.layers = self.model._blocks              # just a reference
+        #self.layers = self.model._blocks              # just a reference
         last_idx = 0
-        for idx, block in enumerate(self.layers):
+        for idx, block in enumerate(self.model._blocks):
             if (block._depthwise_conv.stride == [2, 2]) and (idx>=1):
                 self.output_layers.append(idx-1)
-                self.channels.append(self.layers[idx-1]._block_args.output_filters)                
+                self.channels.append(self.model._blocks[idx-1]._block_args.output_filters)                
                 last_idx = idx
         if(last_idx != idx): 
             self.output_layers.append(idx)
-            self.channels.append(self.layers[idx]._block_args.output_filters)
+            self.channels.append(self.model._blocks[idx]._block_args.output_filters)
 
         """
         # method(2) --- Use self.layers in "forward"
@@ -629,7 +629,8 @@ def construct_backbone(cfg):
     # Add downsampling layers until we reach the number we need
     num_layers = max(cfg.selected_layers) + 1
     # if we don't have enough layers output to yolact feature, the add some extra
-    while len(backbone.layers) < num_layers:
-        backbone.add_layer()
+    if (hasattr(backbone, 'layers')):
+        while len(backbone.layers) < num_layers:
+            backbone.add_layer()    
 
     return backbone
