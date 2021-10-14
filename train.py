@@ -38,7 +38,8 @@ parser.add_argument('--resume', default=None, type=str,
 parser.add_argument('--start_iter', default=-1, type=int,
                     help='Resume training at this iter. If this is -1, the iteration will be'\
                          'determined from the file name.')
-parser.add_argument('--num_workers', default=4, type=int,
+#parser.add_argument('--num_workers', default=4, type=int,
+parser.add_argument('--num_workers', default=1, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--cuda', default=True, type=str2bool,
                     help='Use CUDA to train model')
@@ -50,13 +51,16 @@ parser.add_argument('--decay', '--weight_decay', default=None, type=float,
                     help='Weight decay for SGD. Leave as None to read this from the config.')
 parser.add_argument('--gamma', default=None, type=float,
                     help='For each lr step, what to multiply the lr by. Leave as None to read this from the config.')
+#parser.add_argument('--save_folder', default='weights/',
+#                    help='Directory for saving checkpoint models.')
 parser.add_argument('--save_folder', default='weights/',
                     help='Directory for saving checkpoint models.')
 parser.add_argument('--log_folder', default='logs/',
                     help='Directory for saving logs.')
 parser.add_argument('--config', default=None,
                     help='The config object to use.')
-parser.add_argument('--save_interval', default=10000, type=int,
+#parser.add_argument('--save_interval', default=10000, type=int,
+parser.add_argument('--save_interval', default=100, type=int,
                     help='The number of iterations between saving the model.')
 parser.add_argument('--validation_size', default=5000, type=int,
                     help='The number of images to use for validation.')
@@ -164,7 +168,7 @@ class CustomDataParallel(nn.DataParallel):
 
         for k in outputs[0]:
             out[k] = torch.stack([output[k].to(output_device) for output in outputs])
-        
+
         return out
 
 def train():
@@ -228,9 +232,11 @@ def train():
         net = net.cuda()
     
     # Initialize everything
-    if not cfg.freeze_bn: yolact_net.freeze_bn() # Freeze bn so we don't kill our means
+    if not cfg.freeze_bn: 
+        yolact_net.freeze_bn() # Freeze bn so we don't kill our means
     yolact_net(torch.zeros(1, 3, cfg.max_size, cfg.max_size).cuda())
-    if not cfg.freeze_bn: yolact_net.freeze_bn(True)
+    if not cfg.freeze_bn: 
+        yolact_net.freeze_bn(True)
 
     # loss counters
     loc_loss = 0
@@ -258,6 +264,8 @@ def train():
 
     print('Begin training!')
     print()
+
+    f = open('weights/train_log.txt', 'w')
     # try-except so you can use ctrl+c to save early and stop training
     try:
         for epoch in range(num_epochs):
@@ -332,9 +340,12 @@ def train():
                     
                     total = sum([loss_avgs[k].get_avg() for k in losses])
                     loss_labels = sum([[k, loss_avgs[k].get_avg()] for k in loss_types if k in losses], [])
+                    #print(('[%3d] %7d ||' + (' %s: %.3f |' * len(losses)) + ' T: %.3f || ETA: %s || timer: %.3f')
+                    #        % tuple([epoch, iteration] + loss_labels + [total, eta_str, elapsed]), flush=True)
+                    mystr = ('[%3d] %7d ||' + (' %s: %.3f |' * len(losses)) + ' T: %.3f || ETA: %s || timer: %.3f') % tuple([epoch, iteration] + loss_labels + [total, eta_str, elapsed])
+                    f.write(mystr)
+                    print(mystr, flush=True)
                     
-                    print(('[%3d] %7d ||' + (' %s: %.3f |' * len(losses)) + ' T: %.3f || ETA: %s || timer: %.3f')
-                            % tuple([epoch, iteration] + loss_labels + [total, eta_str, elapsed]), flush=True)
 
                 if args.log:
                     precision = 5
@@ -379,9 +390,11 @@ def train():
             
             yolact_net.save_weights(save_path(epoch, repr(iteration) + '_interrupt'))
         exit()
-
+    
+    f.close()   
+    
     yolact_net.save_weights(save_path(epoch, iteration))
-
+    
 
 def set_lr(optimizer, new_lr):
     for param_group in optimizer.param_groups:

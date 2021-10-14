@@ -41,15 +41,11 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description='YOLACT COCO Evaluation')
     parser.add_argument('--trained_model',
-                        #default='weights/ssd300_mAP_77.43_v2.pth', type=str,
-                        #default='weights/yolact_base_54_800000.pth', type=str,
-                        default='weights/yolact_base_0_100.pth', type=str,
-                        #default='weights/yolact_EfficientNet_0_1100.pth', type=str,                        
+                        default='weights/ssd300_mAP_77.43_v2.pth', type=str,
                         help='Trained state_dict file path to open. If "interrupt", this will open the interrupt file.')
     parser.add_argument('--top_k', default=5, type=int,
                         help='Further restrict the number of predictions to parse')
     parser.add_argument('--cuda', default=True, type=str2bool,
-    #parser.add_argument('--cuda', default=False, type=str2bool,
                         help='Use cuda to evaulate model')
     parser.add_argument('--fast_nms', default=True, type=str2bool,
                         help='Whether to use a faster, but not entirely correct version of NMS.')
@@ -99,16 +95,15 @@ def parse_args(argv=None):
                         help='Outputs stuff for scripts/compute_mask.py.')
     parser.add_argument('--no_crop', default=False, dest='crop', action='store_false',
                         help='Do not crop output masks with the predicted bounding box.')
-    parser.add_argument('--image', default=None, type=str,  #'--image', default='beauty.jpg', type=str,  #'--image', default=None, type=str,
+    parser.add_argument('--image', default=None, type=str,
                         help='A path to an image to use for display.')
     parser.add_argument('--images', default=None, type=str,
                         help='An input folder of images and output folder to save detected images. Should be in the format input->output.')
-    #parser.add_argument('--video', default=None, type=str,
-    parser.add_argument('--video', default='720degree.mp4', type=str,
+    parser.add_argument('--video', default=None, type=str,
                         help='A path to a video to evaluate on. Passing in a number will use that index webcam.')
     parser.add_argument('--video_multiframe', default=1, type=int,
                         help='The number of frames to evaluate in parallel to make videos play at higher fps.')
-    parser.add_argument('--score_threshold', default=0.15, type=float,  #'--score_threshold', default=0, type=float,
+    parser.add_argument('--score_threshold', default=0, type=float,
                         help='Detections with a score under this threshold will not be considered. This currently only works in display mode.')
     parser.add_argument('--dataset', default=None, type=str,
                         help='If specified, override the dataset specified in the config with this one (example: coco2017_dataset).')
@@ -657,11 +652,10 @@ def evalvideo(net:Yolact, path:str, out_path:str=None):
     target_fps   = round(vid.get(cv2.CAP_PROP_FPS))
     frame_width  = round(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = round(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    num_frames   = round(vid.get(cv2.CAP_PROP_FRAME_COUNT))
     
     if is_webcam:
         num_frames = float('inf')
-    else:
-        num_frames = round(vid.get(cv2.CAP_PROP_FRAME_COUNT))
 
     net = CustomDataParallel(net).cuda()
     transform = torch.nn.DataParallel(FastBaseTransform()).cuda()
@@ -793,7 +787,7 @@ def evalvideo(net:Yolact, path:str, out_path:str=None):
             traceback.print_exc()
 
 
-    extract_frame = lambda x, i: (x[0][i] if x[1][i]['detection'] is None else x[0][i].to(x[1][i]['detection']['box'].device), [x[1][i]])
+    extract_frame = lambda x, i: (x[0][i] if x[1][i] is None else x[0][i].to(x[1][i]['detection']['box'].device), [x[1][i]])
 
     # Prime the network on the first frame because I do some thread unsafe things otherwise
     print('Initializing model... ', end='')
@@ -1108,7 +1102,5 @@ if __name__ == '__main__':
             net = net.cuda()
 
         evaluate(net, dataset)
-    
-    print('done')
 
 

@@ -1,4 +1,4 @@
-from backbone import ResNetBackbone, VGGBackbone, ResNetBackboneGN, DarkNetBackbone
+from backbone import EfficientNetBackbone, ResNetBackbone, VGGBackbone, ResNetBackboneGN, DarkNetBackbone
 from math import sqrt
 import torch
 
@@ -109,11 +109,14 @@ dataset_base = Config({
     'name': 'Base Dataset',
 
     # Training images and annotations
-    'train_images': './data/coco/images/',
+    #'train_images': './data/coco/images/',
+    'train_images': 'E:/BigData/coco/VOC2017/train2017/',
+    
     'train_info':   'path_to_annotation_file',
 
     # Validation images and annotations.
-    'valid_images': './data/coco/images/',
+    #'valid_images': './data/coco/images/',
+    'valid_images': 'E:/BigData/coco/VOC2017/test2017/',
     'valid_info':   'path_to_annotation_file',
 
     # Whether or not to load GT. If this is False, eval.py quantitative evaluation won't work.
@@ -131,8 +134,10 @@ dataset_base = Config({
 coco2014_dataset = dataset_base.copy({
     'name': 'COCO 2014',
     
-    'train_info': './data/coco/annotations/instances_train2014.json',
-    'valid_info': './data/coco/annotations/instances_val2014.json',
+    #'train_info': './data/coco/annotations/instances_train2014.json',
+    #'valid_info': './data/coco/annotations/instances_val2014.json',
+    'train_info': 'E:/BigData/coco/VOC2014/annotations/instances_train2014.json',
+    'valid_info': 'E:/BigData/coco/VOC2014/annotations/instances_val2014.json',
 
     'label_map': COCO_LABEL_MAP
 })
@@ -140,8 +145,10 @@ coco2014_dataset = dataset_base.copy({
 coco2017_dataset = dataset_base.copy({
     'name': 'COCO 2017',
     
-    'train_info': './data/coco/annotations/instances_train2017.json',
-    'valid_info': './data/coco/annotations/instances_val2017.json',
+    #'train_info': './data/coco/annotations/instances_train2017.json',
+    #'valid_info': './data/coco/annotations/instances_val2017.json',
+    'train_info': 'E:/BigData/coco/VOC2017/annotations/instances_train2017.json',
+    'valid_info': 'E:/BigData/coco/VOC2017/annotations/instances_val2017.json',
 
     'label_map': COCO_LABEL_MAP
 })
@@ -149,7 +156,8 @@ coco2017_dataset = dataset_base.copy({
 coco2017_testdev_dataset = dataset_base.copy({
     'name': 'COCO 2017 Test-Dev',
 
-    'valid_info': './data/coco/annotations/image_info_test-dev2017.json',
+    #'valid_info': './data/coco/annotations/image_info_test-dev2017.json',
+    'valid_info': 'E:/BigData/coco/VOC2017/annotations/image_info_test-dev2017.json',
     'has_gt': False,
 
     'label_map': COCO_LABEL_MAP
@@ -179,6 +187,14 @@ pascal_sbd_dataset = dataset_base.copy({
 # ----------------------- TRANSFORMS ----------------------- #
 
 resnet_transform = Config({
+    'channel_order': 'RGB',
+    'normalize': True,
+    'subtract_means': False,
+    'to_float': False,
+})
+
+
+efficientnet_transform = Config({
     'channel_order': 'RGB',
     'normalize': True,
     'subtract_means': False,
@@ -298,9 +314,20 @@ vgg16_backbone = backbone_base.copy({
     'pred_aspect_ratios': [ [[1], [1, sqrt(2), 1/sqrt(2), sqrt(3), 1/sqrt(3)][:n]] for n in [3, 5, 5, 5, 3, 3] ],
 })
 
+efficientnet_backbone = backbone_base.copy({
+    'name': 'EfficientNet',
+    
+    # this is the 'compound_coef' value to select the efficient-b0 model, set it ot [0~7] to select the model needed
+    'args': (0,),    
 
+    'path': 'efficientdet-d0.pth',
+    'type': EfficientNetBackbone,
+    'transform': efficientnet_transform,
 
-
+    'selected_layers': list(range(2, 8)),
+    'pred_scales': [[1]]*6,
+    'pred_aspect_ratios': [ [[0.66685089, 1.7073535, 0.87508774, 1.16524493, 0.49059086]] ] * 6,
+})
 
 # ----------------------- MASK BRANCH TYPES ----------------------- #
 
@@ -407,9 +434,6 @@ fpn_base = Config({
     # Whether to add relu to the regular layers
     'relu_pred_layers': True,
 })
-
-
-
 
 
 # ----------------------- CONFIG DEFAULTS ----------------------- #
@@ -648,9 +672,6 @@ coco_base_config = Config({
 })
 
 
-
-
-
 # ----------------------- YOLACT v1.0 CONFIGS ----------------------- #
 
 yolact_base_config = coco_base_config.copy({
@@ -689,6 +710,12 @@ yolact_base_config = coco_base_config.copy({
     'mask_alpha': 6.125,
     'mask_proto_src': 0,
     'mask_proto_net': [(256, 3, {'padding': 1})] * 3 + [(None, -2, {}), (256, 3, {'padding': 1})] + [(32, 1, {})],
+    # 0:(256, 3, {'padding': 1})
+    # 1:(256, 3, {'padding': 1})
+    # 2:(256, 3, {'padding': 1})
+    # 3:(None, -2, {})
+    # 4:(256, 3, {'padding': 1})
+    # 5:(32, 1, {})
     'mask_proto_normalize_emulate_roi_pooling': True,
 
     # Other stuff
@@ -805,9 +832,32 @@ yolact_plus_resnet50_config = yolact_plus_base_config.copy({
     }),
 })
 
+# ----------------------- EfficientNet CONFIGS ----------------------- #
+yolact_EfficientNet_config = yolact_base_config.copy({
+    'name': 'yolact_EfficientNet',
+    
+    #'dataset': my_custom_dataset,
+    #'num_classes': len(my_custom_dataset.class_names) + 1,
+    #'fpn': None,
+    #'max_iter': 100,
+    #'lr_steps': (60000, 100000),
+    'mask_proto_src': 0,  # the 0th layer in the selected output-layers [2,3,4]
+    'backbone': efficientnet_backbone.copy({
+        # Efficientnet has 5 output layers, we use the last 3 layer [2,3,4]
+        'selected_layers': list(range(2, 5)),             
 
+        'pred_scales': [[24], [48], [96], [192], [384]],  # prior boxes
+        'pred_aspect_ratios': [[[1.414]]] * 5,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': False,  # This is for backward compatability with a bug
+    }),
+})
+
+# ----------------------- Default Config ----------------------- #
 # Default config
 cfg = yolact_base_config.copy()
+#cfg = yolact_EfficientNet_config.copy()
 
 def set_cfg(config_name:str):
     """ Sets the active config. Works even if cfg is already imported! """

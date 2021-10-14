@@ -22,7 +22,8 @@ from utils.functions import MovingAverage, make_net
 torch.cuda.current_device()
 
 # As of March 10, 2019, Pytorch DataParallel still doesn't support JIT Script Modules
-use_jit = torch.cuda.device_count() <= 1
+# use_jit = torch.cuda.device_count() <= 1
+use_jit = False
 if not use_jit:
     print('Multiple GPUs detected! Turning off JIT.')
 
@@ -232,9 +233,11 @@ class PredictionModule(nn.Module):
                                 if not cfg.backbone.preapply_sqrt:
                                     ar = sqrt(ar)
 
-                                if cfg.backbone.use_pixel_scales:
-                                    w = scale * ar / cfg.max_size
-                                    h = scale / ar / cfg.max_size
+                                # e.g. for FPN with feature 69x69, w=24/69*550 =191
+                                # ref. https://github.com/dbolya/yolact/issues/61
+                                if cfg.backbone.use_pixel_scales:                                    
+                                    w = scale * ar / cfg.max_size # prior box width
+                                    h = scale / ar / cfg.max_size # prior box height
                                 else:
                                     w = scale * ar / conv_w
                                     h = scale / ar / conv_h
@@ -307,7 +310,13 @@ class FPN(ScriptModuleWrapper):
         self.relu_downsample_layers = cfg.fpn.relu_downsample_layers
         self.relu_pred_layers       = cfg.fpn.relu_pred_layers
 
-    @script_method_wrapper
+    # If you need to debug the FPN forward method, you can do the following
+    # (1) use_jit = False, thus
+    # Remove the @torch.jit.script_method decorator from the method and debug the method as Python code, 
+    # OR (2) do the following
+    # Create a free python function, pass in values you're interested to inspect into that function, and within the function call pdb
+
+    @script_method_wrapper 
     def forward(self, convouts:List[torch.Tensor]):
         """
         Args:
@@ -394,6 +403,8 @@ class Yolact(nn.Module):
         - selected_layers: The indices of the conv layers to use for prediction.
         - pred_scales:     A list with len(selected_layers) containing tuples of scales (see PredictionModule)
         - pred_aspect_ratios: A list of lists of aspect ratios with len(selected_layers) (see PredictionModule)
+
+          NOTE: predp_scales & pred_aspect_ratios will determine the prior box sizes
     """
 
     def __init__(self):
@@ -401,35 +412,60 @@ class Yolact(nn.Module):
 
         self.backbone = construct_backbone(cfg.backbone)
 
+        # don't involve batchnorm in grad calc 让上面定义的backbone里面的除Conv之外的层不参与梯度计算(学习)
         if cfg.freeze_bn:
             self.freeze_bn()
 
         # Compute mask_dim here and add it back to the config. Make sure Yolact's constructor is called early!
-        if cfg.mask_type == mask_type.direct:
+        if cfg.mask_type == mask_type.direct: # NOT used
             cfg.mask_dim = cfg.mask_size**2
         elif cfg.mask_type == mask_type.lincomb:
-            if cfg.mask_proto_use_grid:
+            if cfg.mask_proto_use_grid:   # False
                 self.grid = torch.Tensor(np.load(cfg.mask_proto_grid_file))
                 self.num_grids = self.grid.size(0)
             else:
                 self.num_grids = 0
 
-            self.proto_src = cfg.mask_proto_src
+            self.proto_src = cfg.mask_proto_src  # (==0) The input layer to generate mask, in backbone
             
-            if self.proto_src is None: in_channels = 3
-            elif cfg.fpn is not None: in_channels = cfg.fpn.num_features
-            else: in_channels = self.backbone.channels[self.proto_src]
+            # NOTE: when FPN exists, the in_channels is fpn features,
+            #       which has nothing to do with backbone.channels
+            if self.proto_src is None: 
+                in_channels = 3            
+            elif cfg.fpn is not None: 
+                # if FPN exists, its output channels is used
+                in_channels = cfg.fpn.num_features
+            else:
+                # if NO FPN, we use channels directly from the backbone
+                #in_channels = self.backbone.channels[self.proto_src]      ---> a bug if self.proto_src is not 0
+                in_channels = self.backbone.channels[cfg.backbone.selected_layers[0]]
+
             in_channels += self.num_grids
 
             # The include_last_relu=false here is because we might want to change it to another function
             self.proto_net, cfg.mask_dim = make_net(in_channels, cfg.mask_proto_net, include_last_relu=False)
+            # NOTE: the above code generates the protonet
+            # in_channels: number of backbone output channels to the proto_net
+            # 0:(256, 3, {'padding': 1})
+            # 1:(256, 3, {'padding': 1})
+            # 2:(256, 3, {'padding': 1})
+            # 3:(None, -2, {})
+            # 4:(256, 3, {'padding': 1})
+            # 5:(32, 1, {})
+            # ----------------------> generate the following network ----------------
+            # 00:Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))            # 01:ReLU(inplace=True)
+            # 02:Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))            # 03:ReLU(inplace=True)
+            # 04:Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))            # 05:ReLU(inplace=True)
+            # 06:InterpolateModule()  ----> (None, -2, {})                                      # 07:ReLU(inplace=True)
+            # 08:Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))            # 09:ReLU(inplace=True)
+            # 10:Conv2d(256, 32,  kernel_size=(1, 1), stride=(1, 1))                             # 11:ReLU(inplace=True)
 
-            if cfg.mask_proto_bias:
+            if cfg.mask_proto_bias: # False
                 cfg.mask_dim += 1
 
 
-        self.selected_layers = cfg.backbone.selected_layers
-        src_channels = self.backbone.channels
+        self.selected_layers = cfg.backbone.selected_layers  #resnet=[1,2,3]
+        src_channels = self.backbone.channels                #resnet=[256, 512, 1024, 2048]
 
         if cfg.use_maskiou:
             self.maskiou_net = FastMaskIoUNet()
@@ -437,8 +473,10 @@ class Yolact(nn.Module):
         if cfg.fpn is not None:
             # Some hacky rewiring to accomodate the FPN
             self.fpn = FPN([src_channels[i] for i in self.selected_layers])
-            self.selected_layers = list(range(len(self.selected_layers) + cfg.fpn.num_downsample))
-            src_channels = [cfg.fpn.num_features] * len(self.selected_layers)
+            # NOTE: num_downsample == 2, add 2 extra fpn layer (P1,P2,P3)+(P4, P5)
+            #       thus, selected_layers == [0, 1, 2, 3, 4], as below,
+            self.selected_layers = list(range(len(self.selected_layers) + cfg.fpn.num_downsample))  # NOW selected_layers changed to [0,1,2,3,4] for P3,P4,P5,P6,P7
+            src_channels = [cfg.fpn.num_features] * len(self.selected_layers) # [256] * 5 = [256, 256, 256, 256, 256]
 
 
         self.prediction_layers = nn.ModuleList()
@@ -447,7 +485,7 @@ class Yolact(nn.Module):
         for idx, layer_idx in enumerate(self.selected_layers):
             # If we're sharing prediction module weights, have every module's parent be the first one
             parent = None
-            if cfg.share_prediction_module and idx > 0:
+            if cfg.share_prediction_module and idx > 0: # share_prediction_module == True
                 parent = self.prediction_layers[0]
 
             pred = PredictionModule(src_channels[layer_idx], src_channels[layer_idx],
@@ -456,6 +494,21 @@ class Yolact(nn.Module):
                                     parent        = parent,
                                     index         = idx)
             self.prediction_layers.append(pred)
+            # NOTE: final self.prediction_layers
+            # ModuleList(
+            #   (0): PredictionModule(
+            #     (upfeature): Sequential(
+            #       (0): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            #       (1): ReLU(inplace=True)
+            #     )
+            #     (bbox_layer): Conv2d(256, 12, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            #     (conf_layer): Conv2d(256, 243, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            #     (mask_layer): Conv2d(256, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            #   )
+            #   (1): PredictionModule()
+            #   (2): PredictionModule()
+            #   (3): PredictionModule()
+            #   (4): PredictionModule()
 
         # Extra parameters for the extra losses
         if cfg.use_class_existence_loss:
@@ -508,9 +561,19 @@ class Yolact(nn.Module):
             # See issue #127 for why we need such a complicated condition if the module is a WeakScriptModuleProxy
             # Broke in 1.3 (see issue #175), WeakScriptModuleProxy was turned into just ScriptModule.
             # Note that this might break with future pytorch updates, so let me know if it does
-            is_script_conv = 'Script' in type(module).__name__ \
-                and all_in(module.__dict__['_constants_set'], conv_constants) \
-                and all_in(conv_constants, module.__dict__['_constants_set'])
+            #is_script_conv = 'Script' in type(module).__name__ \
+            #    and all_in(module.__dict__['_constants_set'], conv_constants) \
+            #    and all_in(conv_constants, module.__dict__['_constants_set'])
+            is_script_conv = False
+            if 'Script' in type(module).__name__:
+                # 1.4 workaround: now there's an original_name member so just use that
+                if hasattr(module, 'original_name'):
+                    is_script_conv = 'Conv' in module.original_name
+                # 1.3 workaround: check if this has the same constants as a conv module
+                else:
+                    is_script_conv = (
+                        all_in(module.__dict__['_constants_set'], conv_constants)
+                        and all_in(conv_constants, module.__dict__['_constants_set']))
             
             is_conv_layer = isinstance(module, nn.Conv2d) or is_script_conv
             
@@ -552,6 +615,18 @@ class Yolact(nn.Module):
 
                 module.weight.requires_grad = enable
                 module.bias.requires_grad = enable
+        '''
+        第一次循环，module为Yolact类 ，那么if肯定不成立
+        第二次循环，module为ResNetbackbone类，就是上面定义的网络层，if不成立
+        第三次循环，进入ResNetbackbone中，依次访问里面的层,这次module为Modulelist
+        第四次循环，module为Modulelist中的第一个Sequential
+        第五次循环，module为Bottleneck。if不成立
+        第六次循环，module为conv1，if不成立
+        第七次循环，module为bn1，if成立：
+                    module.weight.requires_grad = enable #enable = False
+                    module.bias.requires_grad = enable
+        原文链接：https://blog.csdn.net/qq_38800014/article/details/105933590
+        '''
     
     def forward(self, x):
         """ The input should be of size [batch_size, 3, img_h, img_w] """
@@ -559,7 +634,7 @@ class Yolact(nn.Module):
         cfg._tmp_img_h = img_h
         cfg._tmp_img_w = img_w
         
-        with timer.env('backbone'):
+        with timer.env('backbone'): # this sentence can be removed, it is just a timer to auto start and stop
             outs = self.backbone(x)
 
         if cfg.fpn is not None:
