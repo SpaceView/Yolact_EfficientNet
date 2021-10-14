@@ -208,6 +208,14 @@ class EfficientNet(nn.Module):
         x = self._fc(x)
         return x
 
+    def init_weights(self, path):
+        state_dict = torch.load(path)
+        try:
+            ret = self.load_state_dict(state_dict, strict=False)
+            print(ret)
+        except RuntimeError as e:
+            print('Ignoring ' + str(e) + '"')
+
     @classmethod
     def from_name(cls, model_name, override_params=None):
         cls._check_model_name_is_valid(model_name)

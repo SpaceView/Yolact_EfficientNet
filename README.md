@@ -27,6 +27,19 @@ If you can achieve a much high speed, please let me know.
 
 You can load the pretrained weights from: [efficientnet-b0.pth](https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth)
 
+If you want to use the pretrained weights,  set the path to the correct one so that YOLACT can find it,
+
+```python
+efficientnet_backbone = backbone_base.copy({
+...
+    # set it to anything doesn't exist if you don't want to use pretrained weights.
+    'path': 'efficientnet-b0-yolact-abridged.pth',  
+...
+})
+```
+
+
+
 目前我还没时间测试最终结果，只是给出了一个例子。
 
 在原来的代码中，这里 [[Cannot download backbone weights](https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch/issues/48) ]提到，不能使用原来efficientnet的权重文件，例如efficientnet-b0-355c32eb.pth的权重文件。

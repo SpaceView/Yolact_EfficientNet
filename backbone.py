@@ -1,6 +1,8 @@
+from genericpath import exists
 import torch
 import torch.nn as nn
 import pickle
+import os
 
 from collections import OrderedDict
 
@@ -522,9 +524,8 @@ class EfficientNetBackbone(nn.Module):
         #super(EfficientNetBackbone, self).__init__()
         super().__init__()
 
-        self.load_weights = load_weights
-
-        model = EffNet.from_pretrained(f'efficientnet-b{compound_coef}', load_weights)
+        # NOTE: weights can be loaded later by YOLACT later,  NOW set load_weights to False
+        model = EffNet.from_pretrained(f'efficientnet-b{compound_coef}', load_weights = False)
         del model._conv_head
         del model._bn1
         del model._avg_pooling
@@ -600,17 +601,17 @@ class EfficientNetBackbone(nn.Module):
     
     # NOTE: this init_backbone is for compatibility reasons only
     #       if load from weights required, just set load_weights = True
-    def init_backbone(self, path):
-        if (False == self.load_weights):
+    def init_backbone(self, path):        
+        load_weights = False
+        
+        if os.path.exists(path):
+            load_weights = True
+
+        if (False == load_weights):
             init_weights(self.model)
             return
 
-        state_dict = torch.load(path)
-        try:
-            ret = self.load_state_dict(state_dict, strict=False)
-            print(ret)
-        except RuntimeError as e:
-            print('Ignoring ' + str(e) + '"')
+        self.model.init_weights(path)
         
     def add_layer(self, conv_channels=1024, downsample=2, depth=1, block=Bottleneck):
         """ Add a downsample layer to the backbone as per what SSD does. """

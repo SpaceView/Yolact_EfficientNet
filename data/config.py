@@ -320,7 +320,10 @@ efficientnet_backbone = backbone_base.copy({
     # this is the 'compound_coef' value to select the efficient-b0 model, set it ot [0~7] to select the model needed
     'args': (0,),    
 
-    'path': 'efficientdet-d0.pth',
+    # set it to anything doesn't exist if you don't want to use pretrained weights.
+    'path': 'efficientnet-b0-yolact-abridged.pth',  # use the correct weights
+    #'path': 'file_not_exist.pth',   #  init by kaiming_uniform, pass the pretrained weights
+
     'type': EfficientNetBackbone,
     'transform': efficientnet_transform,
 

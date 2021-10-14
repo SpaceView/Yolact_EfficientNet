@@ -17,12 +17,14 @@ def key_transformation(key):
 yolact_dir = './weightsav/yolact_EfficientNet_0_100.pth'
 effnet_dir = './weights/efficientnet-b0-355c32eb.pth'
 save_dir = './weightsav/efficientnet-b0-yolact.pth'
+save_dir_abridged = './weightsav/efficientnet-b0-yolact-abridged.pth'
 f_eff = open('./weightsav/efficientnet-b0_keys.txt', 'w')
 f_yol = open('./weightsav/yolact_EfficientNet_bacbone_keys.txt', 'w')
 
 yolact_backbone_keys = []
 effnet_keys = []
 new_state_dict = OrderedDict()
+new_state_dict_abridged = OrderedDict()
 
 if  __name__ == '__main__':
     yolact_state_dict = torch.load(yolact_dir)
@@ -48,11 +50,15 @@ if  __name__ == '__main__':
                 tkey = yol_key.replace('.conv.', '.')
                 assert(tkey == eff_key)
             new_state_dict[yol_key] = eff_value
+            new_state_dict_abridged[yol_key] = eff_value
             index = index + 1
         else:
             new_state_dict[eff_key] = eff_value
+        print(eff_key)
+
     f_eff.close()
 
     torch.save(new_state_dict, save_dir)
+    torch.save(new_state_dict_abridged, save_dir_abridged)
 
     print('done')
