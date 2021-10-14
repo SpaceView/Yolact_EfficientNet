@@ -40,7 +40,11 @@ efficientnet_backbone = backbone_base.copy({
 
 
 
-目前我还没时间测试最终结果，只是给出了一个例子。
+目前我还没时间测试更多结果，只是给出了一个b0的例子，加载模型成功，但没有训练成功。
+
+从训练结果看，貌似没看到这个预加载的权重文件有什么好处。
+
+
 
 在原来的代码中，这里 [[Cannot download backbone weights](https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch/issues/48) ]提到，不能使用原来efficientnet的权重文件，例如efficientnet-b0-355c32eb.pth的权重文件。
 
