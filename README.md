@@ -21,6 +21,27 @@ By the way, the training speed is much slower, even than Resnet50. I suppose som
 
 If you can achieve a much high speed, please let me know.
 
+
+
+### Use pretrained efficientnet model (使用预训练的模型)
+
+You can load the pretrained weights from: [efficientnet-b0.pth](https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth)
+
+目前我还没时间测试最终结果，只是给出了一个例子。
+
+在原来的代码中，这里 [[Cannot download backbone weights](https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch/issues/48) ]提到，不能使用原来efficientnet的权重文件，例如efficientnet-b0-355c32eb.pth的权重文件。
+
+因此，我的办法是，将Yolact运行一下，比如我用了100个iteration，然后把这个文件保存下来，也就是 yolact_EfficientNet_0_100.pth，然后，用这个保存下来的文件中的keys，替换掉原来efficientnet-b0-355c32eb.pth 中的keys，生成一个新的 efficientnet-b0-yolact 的权重文件，这样，就可以直接加载 efficientnet-b0-yolact  到模型中初始化这个Backbone的权重了。
+
+具体如何替换请参考：match_and_rename_efficientnet_dict_keys.py
+
+我在替换时还生成了2个keys的文本文件，如下，大家可以打开比较一下，具体差别在哪里。
+efficientnet-b0_keys.txt
+yolact_EfficientNet_bacbone_keys.txt
+————————————————
+版权声明：本文为CSDN博主「丝贝视像-高精度计算机视觉」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/tanmx219/article/details/120765185
+
 ====================================================================
 
 ====================================================================
