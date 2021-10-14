@@ -38,9 +38,8 @@ You can load the pretrained weights from: [efficientnet-b0.pth](https://github.c
 我在替换时还生成了2个keys的文本文件，如下，大家可以打开比较一下，具体差别在哪里。
 efficientnet-b0_keys.txt
 yolact_EfficientNet_bacbone_keys.txt
-————————————————
-版权声明：本文为CSDN博主「丝贝视像-高精度计算机视觉」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
-原文链接：https://blog.csdn.net/tanmx219/article/details/120765185
+
+
 
 ====================================================================
 
