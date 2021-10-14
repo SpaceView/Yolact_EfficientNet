@@ -1,4 +1,34 @@
+This is a copy from https://github.com/dbolya/yolact
+
+EfficientNet backbone is from https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch
+
+Introduction to these changes: https://spacevision.blog.csdn.net/article/details/120765185
+
+Lots of changes are made to cope with the EfficientNet backbone.
+
+Just change the following few lines if you want to use EfficientNet backbone
+
+```
+# ----------------------- Default Config ----------------------- #
+# Default config
+cfg = yolact_base_config.copy()
+#cfg = yolact_EfficientNet_config.copy()
+```
+
+You can test your training results with 720degree.mp4, as uploaded.
+
+By the way, the training speed is much slower, even than Resnet50. I suppose some superparameters have to be updated.
+
+If you can achieve a much high speed, please let me know.
+
+====================================================================
+
+====================================================================
+
+
+
 # **Y**ou **O**nly **L**ook **A**t **C**oefficien**T**s
+
 ```
     ██╗   ██╗ ██████╗ ██╗      █████╗  ██████╗████████╗
     ╚██╗ ██╔╝██╔═══██╗██║     ██╔══██╗██╔════╝╚══██╔══╝

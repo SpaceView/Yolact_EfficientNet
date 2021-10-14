@@ -7,7 +7,7 @@ git branch -M main
 git remote add origin https://github.com/SpaceView/Yolact_EfficientNet.git
 error: remote origin already exists.
 git remote add originsv https://github.com/SpaceView/Yolact_EfficientNet.git
-git push -u originsv main
+git push -u originsv main -f
 
 
 
