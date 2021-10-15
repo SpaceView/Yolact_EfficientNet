@@ -361,6 +361,7 @@ class VGGBackbone(nn.Module):
         # These modules will be initialized by init_backbone,
         # so don't overwrite their initialization later.
         self.backbone_modules = [m for m in self.modules() if isinstance(m, nn.Conv2d)]
+        print('VGG init done')
 
     def _make_layer(self, cfg):
         """
@@ -429,7 +430,8 @@ class VGGBackbone(nn.Module):
         state_dict = torch.load(path)
         state_dict = OrderedDict([(self.transform_key(k), v) for k,v in state_dict.items()])
 
-        self.load_state_dict(state_dict, strict=False)
+        ret = self.load_state_dict(state_dict, strict=False)
+        print(ret)
 
     def add_layer(self, conv_channels=128, downsample=2):
         """ Add a downsample layer to the backbone as per what SSD does. """

@@ -1,5 +1,11 @@
 This is a copy from https://github.com/dbolya/yolact
 
+
+
+## EfficientNet as backbone
+
+
+
 EfficientNet backbone is from https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch
 
 Introduction to these changes: https://spacevision.blog.csdn.net/article/details/120765185
@@ -55,6 +61,20 @@ efficientnet_backbone = backbone_base.copy({
 我在替换时还生成了2个keys的文本文件，如下，大家可以打开比较一下，具体差别在哪里。
 efficientnet-b0_keys.txt
 yolact_EfficientNet_bacbone_keys.txt
+
+
+
+### VGG16 as backbone
+
+Though the author said he has tried VGG16, but I don't see how this is configured; and, I didn't make a success using the author's configuration. Thus, I have to config VGG16 according to my understanding.
+
+You can use VGG16 configuration by set the following codes,
+
+```bash
+cfg = vgg16_config.copy()
+```
+
+
 
 
 

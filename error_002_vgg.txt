@@ -1,0 +1,41 @@
+Begin training!
+
+Multiple GPUs detected! Turning off JIT.
+d:\vsAImc\yolact\utils\augmentations.py:309: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with 
+different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray
+  mode = random.choice(self.sample_options)
+Traceback (most recent call last):
+  File "D:\Anaconda3\envs\torch\lib\runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "D:\Anaconda3\envs\torch\lib\runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "c:\Users\Administrator\.vscode\extensions\ms-python.python-2021.10.1336267007\pythonFiles\lib\python\debugpy\__main__.py", line 45, in <module>
+    cli.main()
+  File "c:\Users\Administrator\.vscode\extensions\ms-python.python-2021.10.1336267007\pythonFiles\lib\python\debugpy/..\debugpy\server\cli.py", line 444, in main
+    run()
+  File "c:\Users\Administrator\.vscode\extensions\ms-python.python-2021.10.1336267007\pythonFiles\lib\python\debugpy/..\debugpy\server\cli.py", line 285, in run_file
+    runpy.run_path(target_as_str, run_name=compat.force_str("__main__"))
+  File "D:\Anaconda3\envs\torch\lib\runpy.py", line 268, in run_path
+    return _run_module_code(code, init_globals, run_name,
+  File "D:\Anaconda3\envs\torch\lib\runpy.py", line 97, in _run_module_code
+    _run_code(code, mod_globals, init_globals,
+  File "D:\Anaconda3\envs\torch\lib\runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "d:\vsAImc\yolact\train.py", line 515, in <module>
+    train()
+  File "d:\vsAImc\yolact\train.py", line 313, in train
+    losses = net(datum)
+  File "D:\Anaconda3\envs\torch\lib\site-packages\torch\nn\modules\module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "D:\Anaconda3\envs\torch\lib\site-packages\torch\nn\parallel\data_parallel.py", line 166, in forward
+    return self.module(*inputs[0], **kwargs[0])
+  File "D:\Anaconda3\envs\torch\lib\site-packages\torch\nn\modules\module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "d:\vsAImc\yolact\train.py", line 148, in forward
+    losses = self.criterion(self.net, preds, targets, masks, num_crowds)
+  File "D:\Anaconda3\envs\torch\lib\site-packages\torch\nn\modules\module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "d:\vsAImc\yolact\layers\modules\multibox_loss.py", line 137, in forward
+    pos_idx = pos.unsqueeze(pos.dim()).expand_as(loc_data)
+RuntimeError: The expanded size of the tensor (50888) must match the existing size (56992) at non-singleton dimension 1.  Target sizes: [8, 50888, 4].  Tensor sizes: [8, 56992, 1]    
+(torch) PS D:\vsAImc\yolact>  d:; cd 'd:\vsAImc\yolact'; & 'D:\Anaconda3\envs\torch\python.exe' 'c:\Users\Administrator\.vscode\extensions\ms-python.python-2021.10.1336267007\pythonFiles\lib\python\debugpy\launcher' '52110' '--' 'd:\vsAImc\yolact\train.py'

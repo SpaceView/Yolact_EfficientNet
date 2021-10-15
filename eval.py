@@ -43,8 +43,10 @@ def parse_args(argv=None):
     parser.add_argument('--trained_model',
                         #default='weights/ssd300_mAP_77.43_v2.pth', type=str,
                         #default='weights/yolact_base_54_800000.pth', type=str,
-                        default='weights/yolact_base_0_100.pth', type=str,
+                        #default='weights/yolact_base_0_100.pth', type=str,
                         #default='weights/yolact_EfficientNet_0_1100.pth', type=str,                        
+                        #default='weightsav/VGG16Net_0_1200.pth', type=str,
+                        default='weightsav/yolact_resnet50_0_4400.pth', type=str,                        
                         help='Trained state_dict file path to open. If "interrupt", this will open the interrupt file.')
     parser.add_argument('--top_k', default=5, type=int,
                         help='Further restrict the number of predictions to parse')

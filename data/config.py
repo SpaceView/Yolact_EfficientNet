@@ -311,7 +311,8 @@ vgg16_backbone = backbone_base.copy({
 
     'selected_layers': [3] + list(range(5, 10)),
     'pred_scales': [[5, 4]]*6,
-    'pred_aspect_ratios': [ [[1], [1, sqrt(2), 1/sqrt(2), sqrt(3), 1/sqrt(3)][:n]] for n in [3, 5, 5, 5, 3, 3] ],
+    #'pred_aspect_ratios': [ [[1], [1, sqrt(2), 1/sqrt(2), sqrt(3), 1/sqrt(3)][:n]] for n in [3, 5, 5, 5, 3, 3] ],
+    'pred_aspect_ratios': [ [[1], [1, sqrt(2), 1/sqrt(2), sqrt(3), 1/sqrt(3)][:n]] for n in [3, 3, 3, 3, 3, 3] ],
 })
 
 efficientnet_backbone = backbone_base.copy({
@@ -321,8 +322,8 @@ efficientnet_backbone = backbone_base.copy({
     'args': (0,),    
 
     # set it to anything doesn't exist if you don't want to use pretrained weights.
-    'path': 'efficientnet-b0-yolact-abridged.pth',  # use the correct weights
-    #'path': 'file_not_exist.pth',   #  init by kaiming_uniform, pass the pretrained weights
+    #'path': 'efficientnet-b0-yolact-abridged.pth',  # use the correct weights
+    'path': 'file_not_exist.pth',   #  init by kaiming_uniform, pass the pretrained weights
 
     'type': EfficientNetBackbone,
     'transform': efficientnet_transform,
@@ -451,7 +452,8 @@ coco_base_config = Config({
     'max_num_detections': 100,
 
     # dw' = momentum * dw - lr * (grad + decay * w)
-    'lr': 1e-3,
+    #'lr': 1e-3,
+    'lr': 1e-3, # 5e-3,  #crashed
     'momentum': 0.9,
     'decay': 5e-4,
 
@@ -857,10 +859,24 @@ yolact_EfficientNet_config = yolact_base_config.copy({
     }),
 })
 
+VGG16Net_config = yolact_base_config.copy({
+    'name': 'VGG16Net', 
+    'mask_proto_src': 0,
+    'backbone': vgg16_backbone,
+     # FPN Settings
+    'fpn': fpn_base.copy({
+        'use_conv_downsample': False,
+        'num_downsample': 0,
+    }),
+
+})
+
 # ----------------------- Default Config ----------------------- #
 # Default config
 #cfg = yolact_base_config.copy()
-cfg = yolact_EfficientNet_config.copy()
+#cfg = yolact_EfficientNet_config.copy()
+#cfg = VGG16Net_config.copy()
+cfg = yolact_resnet50_config.copy()
 
 def set_cfg(config_name:str):
     """ Sets the active config. Works even if cfg is already imported! """
