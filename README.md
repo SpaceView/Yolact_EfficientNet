@@ -74,7 +74,7 @@ You can use VGG16 configuration by set the following codes,
 cfg = vgg16_config.copy()
 ```
 
-
+Frankly speaking, I don't see any reason to use this backbone, it is slow both in train and evaluation.
 
 
 
